@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String          @unique
+  password      String
+  name          String?
+  role          String          @default("EMPLOYEE")
+  employeeCard  EmployeeCard?
+  projects      ProjectMember[]
+  ownedProjects Project[]       @relation("ProjectOwner")
+  tasks         Task[]          @relation("TaskAssignee")
+  createdTasks  Task[]          @relation("TaskCreator")
+  kanbanLogs    KanbanLog[]
+  givenRatings  StarHistory[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+model Project {
+  id           String          @id @default(uuid())
+  name         String
+  description  String?
+  deadline     DateTime
+  status       String          @default("ACTIVE")
+  ownerId      String
+  owner        User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  members      ProjectMember[]
+  tasks        Task[]
+  shares       ProjectShare[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  clientShares ClientShare[]
+}
+
+model ProjectMember {
+  id             String        @id @default(uuid())
+  projectId      String
+  userId         String
+  role           String        @default("MEMBER")
+  project        Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeCard   EmployeeCard? @relation(fields: [employeeCardId], references: [id])
+  employeeCardId String?
+  createdAt      DateTime      @default(now())
+
+  @@unique([projectId, userId])
+}
+
+model Task {
+  id               String      @id @default(uuid())
+  title            String
+  description      String?
+  priority         String      @default("MEDIUM")
+  deadline         DateTime
+  originalDeadline DateTime?
+  status           String      @default("TODO")
+  completedAt      DateTime?
+  projectId        String
+  assigneeId       String?
+  creatorId        String
+  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee         User?       @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator          User        @relation("TaskCreator", fields: [creatorId], references: [id])
+  kanbanLogs       KanbanLog[]
+  starLogs         StarLog[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model EmployeeCard {
+  id                 String          @id @default(uuid())
+  userId             String          @unique
+  fullName           String
+  jobTitle           String
+  phoneNumber        String?
+  email              String
+  starRating         Float           @default(3.0)
+  status             String          @default("ACTIVE")
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activeProjects     ProjectMember[]
+  starHistory        StarHistory[]
+  starLogs           StarLog[]
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  workingHoursPerDay Int             @default(8)
+}
+
+model StarHistory {
+  id             String       @id @default(cuid())
+  employeeCardId String
+  employeeCard   EmployeeCard @relation(fields: [employeeCardId], references: [id], onDelete: Cascade)
+  changeAmount   Int
+  reason         String
+  description    String
+  givenById      String
+  givenBy        User         @relation(fields: [givenById], references: [id])
+  createdAt      DateTime     @default(now())
+}
+
+model StarLog {
+  id             String       @id @default(uuid())
+  employeeCardId String
+  taskId         String?
+  changeAmount   Int
+  reason         String
+  description    String?
+  employeeCard   EmployeeCard @relation(fields: [employeeCardId], references: [id], onDelete: Cascade)
+  task           Task?        @relation(fields: [taskId], references: [id])
+  createdAt      DateTime     @default(now())
+}
+
+model KanbanLog {
+  id         String   @id @default(uuid())
+  taskId     String
+  movedById  String
+  fromStatus String
+  toStatus   String
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  movedBy    User     @relation(fields: [movedById], references: [id])
+  createdAt  DateTime @default(now())
+}
+
+model CompanySettings {
+  id                   String   @id @default(uuid())
+  employerId           String   @unique
+  earlyThresholdHours  Float    @default(24)
+  starsCompletedEarly  Int      @default(5)
+  starsCompletedOnTime Int      @default(3)
+  starsCompletedLate   Int      @default(1)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model ProjectShare {
+  id          String    @id @default(uuid())
+  projectId   String
+  clientEmail String
+  token       String    @unique
+  message     String?
+  status      String    @default("ACTIVE")
+  views       Int       @default(0)
+  lastViewed  DateTime?
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model ClientShare {
+  id          String   @id @default(cuid())
+  token       String   @unique @default(cuid())
+  projectId   String
+  clientEmail String
+  createdAt   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
