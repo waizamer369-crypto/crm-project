@@ -4,18 +4,24 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function main() {
-  const hashedPassword = await bcrypt.hash('password123', 12)
+  const hashedPassword = await bcrypt.hash('password123', 10)
 
-  // Delete existing data first (clean slate)
-  await prisma.starLog.deleteMany()
-  await prisma.kanbanLog.deleteMany()
-  await prisma.task.deleteMany()
-  await prisma.projectMember.deleteMany()
-  await prisma.projectShare.deleteMany()
-  await prisma.project.deleteMany()
-  await prisma.employeeCard.deleteMany()
-  await prisma.companySettings.deleteMany()
-  await prisma.user.deleteMany()
+  // Try to clean existing data (ignore errors if tables don't exist)
+  try {
+    await prisma.starHistory.deleteMany()
+    await prisma.starLog.deleteMany()
+    await prisma.kanbanLog.deleteMany()
+    await prisma.task.deleteMany()
+    await prisma.projectMember.deleteMany()
+    await prisma.projectShare.deleteMany()
+    await prisma.clientShare.deleteMany()
+    await prisma.project.deleteMany()
+    await prisma.employeeCard.deleteMany()
+    await prisma.companySettings.deleteMany()
+    await prisma.user.deleteMany()
+  } catch (e) {
+    console.log('Some tables may not exist yet, continuing...')
+  }
 
   // Create employer
   const employer = await prisma.user.create({
@@ -23,29 +29,35 @@ async function main() {
       email: 'employer@company.com',
       password: hashedPassword,
       name: 'Admin',
-      role: 'EMPLOYER'
+      role: 'EMPLOYER',
+      employeeCard: {
+        create: {
+          fullName: 'Admin Employer',
+          jobTitle: 'CEO',
+          email: 'employer@company.com',
+          status: 'ACTIVE',
+          starRating: 5.0
+        }
+      }
     }
   })
 
-  // Create employee user
+  // Create employee user with employee card
   const employee = await prisma.user.create({
     data: {
       email: 'john@company.com',
       password: hashedPassword,
       name: 'John',
-      role: 'EMPLOYEE'
-    }
-  })
-
-  // Create employee card for John (THIS IS THE KEY!)
-  await prisma.employeeCard.create({
-    data: {
-      userId: employee.id,
-      fullName: 'John Doe',
-      jobTitle: 'Developer',
-      email: 'john@company.com',
-      status: 'ACTIVE',
-      starRating: 3.0
+      role: 'EMPLOYEE',
+      employeeCard: {
+        create: {
+          fullName: 'John Doe',
+          jobTitle: 'Developer',
+          email: 'john@company.com',
+          status: 'ACTIVE',
+          starRating: 3.0
+        }
+      }
     }
   })
 
