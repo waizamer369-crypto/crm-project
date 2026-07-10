@@ -1,5 +1,7 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useState } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
@@ -157,7 +159,7 @@ export default function LoginPage() {
                 <p className="text-sm font-medium text-slate-700 truncate">employer@company.com</p>
               </button>
               <button
-                onClick={() => quickLogin("john@company.com", "password123", "EMPLOYEE")}
+                onClick={() => quickLogin("john@company.com", "waiztheog", "EMPLOYEE")}
                 className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-left hover:bg-slate-100 transition"
               >
                 <p className="text-xs text-slate-400 mb-1">Employee</p>

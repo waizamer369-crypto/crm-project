@@ -72,7 +72,7 @@ async function main() {
     }
   })
 
-  console.log('✅ Seed complete!')
+  console.log('âœ… Seed complete!')
   console.log('')
   console.log('Employer: employer@company.com / password123')
   console.log('Employee: john@company.com / password123')

@@ -6,17 +6,14 @@ export default withAuth(
     const token = req.nextauth.token
     const path = req.nextUrl.pathname
 
-    // Allow login page without auth
     if (path === "/login" || path.startsWith("/api/auth")) {
       return NextResponse.next()
     }
 
-    // No token = redirect to login
     if (!token) {
       return NextResponse.redirect(new URL("/login", req.url))
     }
 
-    // Role checks
     if (path.startsWith("/employer") && token.role !== "EMPLOYER") {
       return NextResponse.redirect(new URL("/employee/calendar", req.url))
     }
@@ -34,9 +31,7 @@ export default withAuth(
         return token !== null
       }
     },
-    pages: {
-      signIn: "/login"
-    }
+    pages: { signIn: "/login" }
   }
 )
 

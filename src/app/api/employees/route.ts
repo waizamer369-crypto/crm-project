@@ -5,7 +5,14 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { Resend } from "resend"
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+let resend: Resend | null = null
+
+function getResend() {
+  if (resend) return resend
+  if (!process.env.RESEND_API_KEY) return null
+  resend = new Resend(process.env.RESEND_API_KEY)
+  return resend
+}
 
 // GET - Fetch all employees
 export async function GET(req: NextRequest) {
@@ -85,14 +92,15 @@ export async function POST(req: NextRequest) {
       include: { employeeCard: true }
     })
 
-    // Send welcome email
     const crmUrl = process.env.NEXTAUTH_URL || "https://crm-production-5052.up.railway.app"
     const loginUrl = `${crmUrl}/login`
     const profileUrl = `${crmUrl}/employee/profile`
 
     try {
       if (process.env.RESEND_API_KEY) {
-        await resend.emails.send({
+        const resendClient = getResend()
+        if (resendClient) {
+        await resendClient.emails.send({
           from: "CRM Pro <onboarding@resend.dev>",
           to: email,
           subject: "Welcome to CRM Pro - Your Account Details",
@@ -101,36 +109,27 @@ export async function POST(req: NextRequest) {
               <h2 style="color: #2563eb;">Welcome to CRM Pro!</h2>
               <p>Hi ${fullName},</p>
               <p>Your employer has created an account for you. Here are your login details:</p>
-
               <div style="background: #f8fafc; padding: 20px; border-radius: 12px; margin: 20px 0;">
                 <p><strong>Email:</strong> ${email}</p>
                 <p><strong>Password:</strong> ${password}</p>
                 <p><strong>Role:</strong> ${role || "EMPLOYEE"}</p>
               </div>
-
               <div style="margin: 20px 0;">
                 <a href="${loginUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
                   Login to CRM Pro
                 </a>
               </div>
-
               <p>After logging in, you can view your profile here:</p>
               <a href="${profileUrl}" style="color: #2563eb;">My Profile</a>
-
               <hr style="margin: 30px 0; border: none; border-top: 1px solid #e2e8f0;" />
-              <p style="color: #64748b; font-size: 12px;">
-                If you have any questions, contact your employer.
-              </p>
+              <p style="color: #64748b; font-size: 12px;">If you have any questions, contact your employer.</p>
             </div>
           `
         })
-        console.log("Welcome email sent successfully to:", email)
-      } else {
-        console.warn("RESEND_API_KEY not set, skipping email send")
+        }
       }
     } catch (emailError) {
       console.error("Failed to send welcome email:", emailError)
-      // Don't fail the request if email fails
     }
 
     return NextResponse.json({
@@ -148,5 +147,35 @@ export async function POST(req: NextRequest) {
       error: "Failed to create employee",
       details: error instanceof Error ? error.message : String(error)
     }, { status: 500 })
+  }
+}
+
+// DELETE - Remove an employee (employer only)
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    if (!session?.user || session.user.role !== "EMPLOYER") {
+      return NextResponse.json({ error: "Unauthorized - Employer only" }, { status: 403 })
+    }
+
+    const { searchParams } = new URL(req.url)
+    const employeeId = searchParams.get("id")
+
+    if (!employeeId) {
+      return NextResponse.json({ error: "Employee ID required" }, { status: 400 })
+    }
+
+    // Don't allow deleting yourself
+    if (employeeId === session.user.id) {
+      return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 })
+    }
+
+    // Delete related data first then the user
+    await prisma.user.delete({ where: { id: employeeId } })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("DELETE employee error:", error)
+    return NextResponse.json({ error: "Failed to delete employee" }, { status: 500 })
   }
 }

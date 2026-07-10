@@ -9,21 +9,20 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-// In your GET handler for /api/employees/me
-const employeeCard = await prisma.employeeCard.findUnique({
-  where: { userId: session.user.id },
-  include: {
-    activeProjects: {
-      include: { project: { select: { id: true, name: true } } }
-    },
-    starHistory: {
-      orderBy: { createdAt: "desc" },
-      include: {
-        givenBy: { select: { name: true } }
+  const employeeCard = await prisma.employeeCard.findUnique({
+    where: { userId: session.user.id },
+    include: {
+      activeProjects: {
+        include: { project: { select: { id: true, name: true } } }
+      },
+      starHistory: {
+        orderBy: { createdAt: "desc" },
+        include: {
+          givenBy: { select: { name: true } }
+        }
       }
     }
-  }
-})
+  })
 
   if (!employeeCard) {
     return NextResponse.json({ error: "Employee card not found" }, { status: 404 })

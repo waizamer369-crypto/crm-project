@@ -1,10 +1,16 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { format } from "date-fns"
-import { User, Mail, Phone, Briefcase, Star, Calendar, LogOut, Layout, CheckCircle, Clock, AlertCircle, Award, TrendingUp, FolderKanban, MessageSquare, ChevronUp, ChevronDown } from "lucide-react"
+import { User, Mail, Phone, Briefcase, Star, Calendar, LogOut, Layout, CheckCircle, Clock, AlertCircle, Award, TrendingUp, FolderKanban, MessageSquare, ChevronUp, ChevronDown, StickyNote, PhoneCall } from "lucide-react"
+import { NotificationBell } from "@/app/components/NotificationBell"
+import { RequestModal } from "@/app/components/RequestModal"
+import { Send } from "lucide-react"
+import { usePathname } from "next/navigation"
 
 interface EmployeeCard {
   id: string
@@ -39,6 +45,9 @@ export default function EmployeeProfile() {
   const [card, setCard] = useState<EmployeeCard | null>(null)
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const [showRequestModal, setShowRequestModal] = useState(false)
+
+  const pathname = usePathname()
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -103,53 +112,65 @@ export default function EmployeeProfile() {
     <div className="min-h-screen bg-slate-50">
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-slate-200 min-h-screen fixed left-0 top-0">
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
-                <User className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="font-bold text-slate-900">CRM Pro</h1>
-                <p className="text-xs text-slate-500">My Workspace</p>
-              </div>
-            </div>
+ <aside className="w-64 bg-white border-r border-slate-200 min-h-screen fixed left-0 top-0">
+  <div className="p-6">
+    <div className="flex items-center gap-3 mb-8">
+      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+        <FolderKanban className="w-5 h-5 text-white" />
+      </div>
+      <div>
+        <h1 className="font-bold text-slate-900">CRM Pro</h1>
+        <p className="text-xs text-slate-500">My Workspace</p>
+      </div>
+    </div>
 
-            <nav className="space-y-1">
-              <Link href="/employee/calendar" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition">
-                <Calendar className="w-5 h-5" />
-                My Calendar
-              </Link>
-              <Link href="/employee/kanban" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition">
-                <Layout className="w-5 h-5" />
-                Kanban Board
-              </Link>
-              <Link href="/employee/projects" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition">
-                <FolderKanban className="w-5 h-5" />
-                My Projects
-              </Link>
-              <Link href="/employee/profile" className="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl font-medium">
-                <User className="w-5 h-5" />
-                My Profile
-              </Link>
-            </nav>
-          </div>
+<nav className="space-y-1">
+  <Link href="/employee/calendar" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/calendar" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <Calendar className="w-5 h-5" />
+    My Calendar
+  </Link>
+  <Link href="/employee/kanban" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/kanban" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <Layout className="w-5 h-5" />
+    Kanban Board
+  </Link>
+  <Link href="/employee/projects" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/projects" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <FolderKanban className="w-5 h-5" />
+    My Projects
+  </Link>
+  <Link href="/employee/notes" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/notes" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <StickyNote className="w-5 h-5" />
+    Notes
+  </Link>
+  <Link href="/employee/meetings" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/meetings" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <PhoneCall className="w-5 h-5" />
+    Meetings
+  </Link>
+  <Link href="/employee/profile" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/profile" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <User className="w-5 h-5" />
+    My Profile
+  </Link>
+  <Link href="/employee/chat" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/chat" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <MessageSquare className="w-5 h-5" />
+    Chat
+  </Link>
+</nav>
+  </div>
 
-          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
-            <div className="flex items-center gap-3 px-4 py-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-bold text-white">
-                {session.user.name?.[0] || "E"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">{session.user.name}</p>
-                <p className="text-xs text-slate-500">Employee</p>
-              </div>
-              <Link href="/login" className="text-slate-400 hover:text-red-500 transition">
-                <LogOut className="w-5 h-5" />
-              </Link>
-            </div>
-          </div>
-        </aside>
+  <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center text-sm font-bold text-white">
+        {session.user.name?.[0] || "E"}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-slate-900 truncate">{session.user.name}</p>
+        <p className="text-xs text-slate-500">Employee</p>
+      </div>
+      <Link href="/login" className="text-slate-400 hover:text-red-500 transition">
+        <LogOut className="w-5 h-5" />
+      </Link>
+    </div>
+  </div>
+</aside>
 
         {/* Main Content */}
         <main className="flex-1 ml-64">
@@ -158,6 +179,13 @@ export default function EmployeeProfile() {
               <div>
                 <h2 className="text-2xl font-bold text-slate-900">My Profile</h2>
                 <p className="text-sm text-slate-500 mt-1">Your employee card and performance</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowRequestModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium text-sm">
+                  <Send className="w-4 h-4" /> Send Request
+                </button>
+                <NotificationBell />
               </div>
             </div>
           </header>
@@ -384,6 +412,9 @@ export default function EmployeeProfile() {
           </div>
         </main>
       </div>
+
+      {/* Request Modal */}
+      {showRequestModal && <RequestModal onClose={() => setShowRequestModal(false)} />}
     </div>
   )
 }

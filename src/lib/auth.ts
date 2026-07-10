@@ -1,37 +1,35 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions & { trustHost?: boolean } = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-        role: { label: "Role", type: "text" }
+        password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log("AUTHORIZING:", credentials?.email)
         if (!credentials?.email || !credentials?.password) return null
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email }
         })
 
-        if (!user || !user.password) return null
+        if (!user) return null
 
-        const passwordMatch = await bcrypt.compare(credentials.password, user.password)
-        if (!passwordMatch) return null
-
-        console.log("USER FOUND:", user.email, "ROLE:", user.role)
+        const isValid = await bcrypt.compare(credentials.password, user.password)
+        if (!isValid) return null
 
         return {
           id: user.id,
           email: user.email,
-          name: user.name || user.email,
-          role: user.role,
+          name: user.name,
+          role: user.role
         }
       }
     })
@@ -40,26 +38,23 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt"
   },
   callbacks: {
-    async jwt({ token, user, account }) {
-console.log("JWT CALLBACK - user:", (user as any)?.role, "token before:", (token as any).role)
+    async jwt({ token, user }) {
       if (user) {
-        token.id = user.id
-   token.role = (user as any).role
+        token.role = (user as any).role
+        token.id = (user as any).id
       }
-      console.log("JWT CALLBACK - token after:", token.role)
       return token
     },
     async session({ session, token }) {
-      console.log("SESSION CALLBACK - token.role:", token.role, "token.sub:", token.sub)
       if (token) {
-        session.user.id = token.sub as string || token.id as string
         session.user.role = token.role as string
+        session.user.id = token.id as string
       }
-      console.log("SESSION CALLBACK - session.user:", session.user)
       return session
     }
   },
   pages: {
     signIn: "/login"
-  }
+  },
+  trustHost: true  // <-- ADD THIS
 }

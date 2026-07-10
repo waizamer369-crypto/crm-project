@@ -1,10 +1,16 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useSession } from "next-auth/react"
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { format } from "date-fns"
-import { FolderKanban, Calendar, User, LogOut, CheckCircle, Clock, AlertCircle, Layout, Briefcase } from "lucide-react"
+import { FolderKanban, Calendar, User, LogOut, CheckCircle, Clock, AlertCircle, Layout, Briefcase, MessageSquare, StickyNote, PhoneCall } from "lucide-react"
+import { NotificationBell } from "@/app/components/NotificationBell"
+import { RequestModal } from "@/app/components/RequestModal"
+import { Send } from "lucide-react"
 
 interface Project {
   id: string
@@ -21,14 +27,16 @@ interface Task {
   deadline: string
   status: string
   priority: string
-  project: { name: string }
+  project: { id: string; name: string }
 }
 
 export default function EmployeeProjects() {
   const { data: session } = useSession()
+  const pathname = usePathname()
   const [projects, setProjects] = useState<Project[]>([])
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const [showRequestModal, setShowRequestModal] = useState(false)
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -38,12 +46,12 @@ export default function EmployeeProjects() {
           const myTasks = data.filter((t: Task) => t.status !== "DONE")
           setTasks(myTasks)
 
-          // Extract unique projects from tasks
           const projectMap = new Map()
           data.forEach((task: Task) => {
-            if (!projectMap.has(task.project?.name)) {
-              projectMap.set(task.project?.name, {
-                id: task.project?.name,
+            const projectId = task.project?.id
+            if (projectId && !projectMap.has(projectId)) {
+              projectMap.set(projectId, {
+                id: projectId,
                 name: task.project?.name,
                 description: "",
                 deadline: task.deadline,
@@ -99,7 +107,6 @@ export default function EmployeeProjects() {
   return (
     <div className="min-h-screen bg-slate-50">
       <div className="flex">
-        {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-slate-200 min-h-screen fixed left-0 top-0">
           <div className="p-6">
             <div className="flex items-center gap-3 mb-8">
@@ -112,24 +119,36 @@ export default function EmployeeProjects() {
               </div>
             </div>
 
-            <nav className="space-y-1">
-              <Link href="/employee/calendar" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition">
-                <Calendar className="w-5 h-5" />
-                My Calendar
-              </Link>
-              <Link href="/employee/kanban" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition">
-                <Layout className="w-5 h-5" />
-                Kanban Board
-              </Link>
-              <Link href="/employee/projects" className="flex items-center gap-3 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl font-medium">
-                <FolderKanban className="w-5 h-5" />
-                My Projects
-              </Link>
-              <Link href="/employee/profile" className="flex items-center gap-3 px-4 py-3 text-slate-600 hover:bg-slate-50 rounded-xl font-medium transition">
-                <User className="w-5 h-5" />
-                My Profile
-              </Link>
-            </nav>
+<nav className="space-y-1">
+  <Link href="/employee/calendar" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/calendar" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <Calendar className="w-5 h-5" />
+    My Calendar
+  </Link>
+  <Link href="/employee/kanban" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/kanban" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <Layout className="w-5 h-5" />
+    Kanban Board
+  </Link>
+  <Link href="/employee/projects" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/projects" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <FolderKanban className="w-5 h-5" />
+    My Projects
+  </Link>
+  <Link href="/employee/notes" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/notes" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <StickyNote className="w-5 h-5" />
+    Notes
+  </Link>
+  <Link href="/employee/meetings" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/meetings" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <PhoneCall className="w-5 h-5" />
+    Meetings
+  </Link>
+  <Link href="/employee/profile" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/profile" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <User className="w-5 h-5" />
+    My Profile
+  </Link>
+  <Link href="/employee/chat" className={`flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition ${pathname === "/employee/chat" ? "bg-blue-50 text-blue-700" : "text-slate-600 hover:bg-slate-50"}`}>
+    <MessageSquare className="w-5 h-5" />
+    Chat
+  </Link>
+</nav>
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-200">
@@ -148,7 +167,6 @@ export default function EmployeeProjects() {
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 ml-64">
           <header className="bg-white border-b border-slate-200 px-8 py-5 sticky top-0 z-10">
             <div className="flex items-center justify-between">
@@ -156,11 +174,17 @@ export default function EmployeeProjects() {
                 <h2 className="text-2xl font-bold text-slate-900">My Projects</h2>
                 <p className="text-sm text-slate-500 mt-1">Your assigned projects and tasks</p>
               </div>
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowRequestModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition font-medium text-sm">
+                  <Send className="w-4 h-4" /> Send Request
+                </button>
+                <NotificationBell />
+              </div>
             </div>
           </header>
 
           <div className="p-8">
-            {/* Stats */}
             <div className="grid grid-cols-4 gap-4 mb-8">
               <div className="bg-white rounded-2xl border border-slate-200 p-5">
                 <div className="flex items-center gap-3 mb-2">
@@ -206,7 +230,6 @@ export default function EmployeeProjects() {
               </div>
             ) : (
               <div className="space-y-8">
-                {/* Projects Section */}
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 mb-4">My Projects</h3>
                   {projects.length === 0 ? (
@@ -218,7 +241,7 @@ export default function EmployeeProjects() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {projects.map((project) => (
                         <div key={project.id} className="bg-white rounded-2xl border border-slate-200 p-6 hover:shadow-md transition">
-                          <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3 mb-3">
                             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm">
                               {project.name[0]}
                             </div>
@@ -238,7 +261,6 @@ export default function EmployeeProjects() {
                   )}
                 </div>
 
-                {/* Tasks Section */}
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 mb-4">My Tasks</h3>
                   {tasks.length === 0 ? (
@@ -279,6 +301,10 @@ export default function EmployeeProjects() {
           </div>
         </main>
       </div>
+
+      {showRequestModal && <RequestModal onClose={() => setShowRequestModal(false)} />}
+
+
     </div>
   )
 }
